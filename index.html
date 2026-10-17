@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gestione Spese</title>
+    <meta name="theme-color" content="#1F497D">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #f4f6f9; color: #333; padding-bottom: 80px; }
+        header { background-color: #1F497D; color: white; padding: 16px; text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        header h1 { font-size: 1.2rem; font-weight: 600; }
+        .container { padding: 16px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .kpi-container { display: flex; justify-content: space-between; gap: 10px; }
+        .kpi { flex: 1; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center; }
+        .kpi-title { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
+        .kpi-value { font-size: 1.1rem; font-weight: bold; color: #1F497D; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.85rem; color: #475569; margin-bottom: 4px; font-weight: 500; }
+        input, select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; outline: none; background: #fff; }
+        input:focus, select:focus { border-color: #1F497D; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #1F497D; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .btn-danger { background: #ef4444; margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; width: auto; color: white; border: none; border-radius: 6px; }
+        .expense-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+        .expense-title { font-weight: 600; color: #1e293b; font-size: 0.95rem; }
+        .expense-sub { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+        .expense-amount { font-weight: bold; color: #dc2626; font-size: 1rem; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; border-top: 1px solid #e2e8f0; height: 60px; z-index: 100; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; font-size: 0.75rem; cursor: pointer; }
+        .nav-item.active { color: #1F497D; font-weight: bold; }
+        .nav-icon { font-size: 1.2rem; margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+    <header><h1 id="header-title">Nuova Spesa</h1></header>
+    <div class="container">
+        <div id="tab-add" class="tab-content active">
+            <div class="card">
+                <form id="expense-form">
+                    <div class="form-group"><label>Data</label><input type="date" id="exp-date" required></div>
+                    <div class="form-group"><label>Importo (€)</label><input type="number" step="0.01" id="exp-amount" placeholder="0.00" required></div>
+                    <div class="form-group"><label>Descrizione</label><input type="text" id="exp-title" placeholder="Es. Spesa Supermercato" required></div>
+                    <div class="form-group">
+                        <label>Categoria</label>
+                        <select id="exp-category" required>
+                            <option value="Alimentari">Alimentari</option>
+                            <option value="Casa / Bollette">Casa / Bollette</option>
+                            <option value="Trasporti / Auto">Trasporti / Auto</option>
+                            <option value="Ristoranti & Bar">Ristoranti & Bar</option>
+                            <option value="Svago & Tempo Libero">Svago & Tempo Libero</option>
+                            <option value="Salute & Benessere">Salute & Benessere</option>
+                            <option value="Abbonamenti / Streaming">Abbonamenti / Streaming</option>
+                            <option value="Shopping & Vestiti">Shopping & Vestiti</option>
+                            <option value="Viaggi & Vacanze">Viaggi & Vacanze</option>
+                            <option value="Altro">Altro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Metodo di Pagamento</label>
+                        <select id="exp-payment" required>
+                            <option value="Carta di Credito">Carta di Credito</option>
+                            <option value="Carta di Debito / Bancomat">Carta di Debito / Bancomat</option>
+                            <option value="Contanti">Contanti</option>
+                            <option value="Bonifico">Bonifico</option>
+                            <option value="Addebito Diretto (RID)">Addebito Diretto (RID)</option>
+                            <option value="Altro">Altro</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">Aggiungi Spesa</button>
+                </form>
+            </div>
+        </div>
+        <div id="tab-list" class="tab-content">
+            <div class="card"><div id="expenses-list"></div></div>
+        </div>
+        <div id="tab-dash" class="tab-content">
+            <div class="card">
+                <div class="kpi-container">
+                    <div class="kpi"><div class="kpi-title">Mese Corrente</div><div class="kpi-value" id="kpi-month">€ 0.00</div></div>
+                    <div class="kpi"><div class="kpi-title">Totale Annuo</div><div class="kpi-value" id="kpi-year">€ 0.00</div></div>
+                </div>
+            </div>
+            <div class="card"><canvas id="categoryChart"></canvas></div>
+        </div>
+    </div>
+    <nav class="nav-bar">
+        <div class="nav-item active" onclick="switchTab('add', 'Nuova Spesa')"><span class="nav-icon">➕</span><span>Aggiungi</span></div>
+        <div class="nav-item" onclick="switchTab('list', 'Elenco Spese')"><span class="nav-icon">📋</span><span>Spese</span></div>
+        <div class="nav-item" onclick="switchTab('dash', 'Dashboard')"><span class="nav-icon">📊</span><span>Report</span></div>
+    </nav>
+    <script>
+        document.getElementById('exp-date').value = new Date().toISOString().substring(0, 10);
+        let expenses = JSON.parse(localStorage.getItem('my_expenses')) || [];
+        let categoryChart = null;
+        function saveExpenses() { localStorage.setItem('my_expenses', JSON.stringify(expenses)); }
+        document.getElementById('expense-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            expenses.unshift({
+                id: Date.now(),
+                date: document.getElementById('exp-date').value,
+                amount: parseFloat(document.getElementById('exp-amount').value),
+                title: document.getElementById('exp-title').value,
+                category: document.getElementById('exp-category').value,
+                payment: document.getElementById('exp-payment').value
+            });
+            saveExpenses();
+            this.reset();
+            document.getElementById('exp-date').value = new Date().toISOString().substring(0, 10);
+            switchTab('list', 'Elenco Spese');
+        });
+        function switchTab(tabId, title) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.getElementById('header-title').innerText = title;
+            const idx = tabId === 'add' ? 0 : tabId === 'list' ? 1 : 2;
+            document.querySelectorAll('.nav-item')[idx].classList.add('active');
+            if(tabId === 'list') renderExpenses();
+            if(tabId === 'dash') renderDashboard();
+        }
+        function renderExpenses() {
+            const container = document.getElementById('expenses-list');
+            if (!expenses.length) { container.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:20px;">Nessuna spesa.</p>'; return; }
+            container.innerHTML = expenses.map(exp => `
+                <div class="expense-item">
+                    <div>
+                        <div class="expense-title">${exp.title}</div>
+                        <div class="expense-sub">${exp.date} • ${exp.category} • ${exp.payment}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="expense-amount">- € ${exp.amount.toFixed(2)}</div>
+                        <button class="btn-danger" onclick="deleteExpense(${exp.id})">Elimina</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function deleteExpense(id) {
+            if(confirm('Eliminare questa spesa?')) { expenses = expenses.filter(e => e.id !== id); saveExpenses(); renderExpenses(); }
+        }
+        function renderDashboard() {
+            const now = new Date();
+            const ym = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+            let monthTotal = 0, yearTotal = 0, catTotals = {};
+            expenses.forEach(exp => {
+                yearTotal += exp.amount;
+                if (exp.date.startsWith(ym)) monthTotal += exp.amount;
+                catTotals[exp.category] = (catTotals[exp.category] || 0) + exp.amount;
+            });
+            document.getElementById('kpi-month').innerText = `€ ${monthTotal.toFixed(2)}`;
+            document.getElementById('kpi-year').innerText = `€ ${yearTotal.toFixed(2)}`;
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            if (categoryChart) categoryChart.destroy();
+            categoryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(catTotals),
+                    datasets: [{ data: Object.values(catTotals), backgroundColor: ['#1F497D', '#38bdf8', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#f472b6', '#cbd5e1'] }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+    </script>
+</body>
+</html>
